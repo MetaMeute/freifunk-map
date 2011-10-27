@@ -14,6 +14,10 @@ macs = {}
 
 nodes = NodeMap:new()
 
+--nodes:addNodeWithId("8e:3d:c2:10:10:28", "10.69,53.8")
+--nodes:addNodeWithId("e2:e5:9b:e6:69:29", "10.69,53.81")
+--nodes:addNodeWithId("da:7b:6f:c1:63:c0", "10.702304,53.834384")
+
 local f = io.popen("wget -q --user-agent 'Do not change this!' -O- 'http://10.130.0.8/meutewiki/Freifunk/Knoten?action=raw'")
 
 local table_index = {}
@@ -37,7 +41,8 @@ while true do
 			local gps = row[table_index['gps']]
 			local mac = row[table_index['mac']]:gsub(" ", ""):split(",")
 			if gps:match("^%s+$") == nil then
-				for i, coords in ipairs(gps:split(",")) do
+				gps = gps:split(",")
+				for i, coords in ipairs(gps) do
 					coords = gps_format(coords)
 
 					node_mac = mac[i]
@@ -47,7 +52,16 @@ while true do
 						node_id = coords
 					end
 
-					nodes:addNodeWithId(node_id, coords)
+					node = nodes:addNodeWithId(node_id, coords)
+					if node_mac then node.macs[node_mac] = true end
+				end
+				if #gps < #mac then
+					for i, mac in ipairs(mac) do
+						if i > #gps then
+							node = nodes:addNodeWithId(mac, gps_format(gps[#gps]))
+							node.macs[mac] = true
+						end
+					end
 				end
 			end
 		end
@@ -92,16 +106,24 @@ for j,x in pairs(node_map) do mac_map[j] = x end
 
 for i, foo in pairs(vis_data) do
 	if foo.gateway then
-		node = node_map[foo.gateway]
+		node = mac_map[foo.gateway]
 		if node then
 			mac_map[foo.router:lower()] = node
-			mac_map[foo.gateway:lower()] = node
+			node.macs[foo.router:lower()] = true
 		end
 	end
 end
 
 --[[
 for i, foo in pairs(vis_data) do
+	if foo.label == "TT" then
+		node = mac_map[foo.router:lower()]
+		if node then
+			mac_map[foo.gateway:lower()] = node
+			node.macs[foo.gateway:lower()] = true
+		end 
+	end
+
 	if foo.secondary then
 		x = mac_map[foo.secondary:lower()]
 		y = mac_map[foo.of:lower()]
@@ -110,6 +132,8 @@ for i, foo in pairs(vis_data) do
 			if x and y then print("found both?!") end
 			mac_map[foo.of:lower()] = node
 			mac_map[foo.secondary:lower()] = node
+			node.macs[foo.of:lower()] = true
+			node.macs[foo.secondary:lower()] = true
 		end
 	end
 end

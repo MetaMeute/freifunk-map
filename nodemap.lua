@@ -10,7 +10,7 @@ function NodeMap:new ()
 end
 
 function NodeMap:addNodeWithId (id, coords)
-	node = {coords=coords, status=nil}
+	node = {coords=coords, status=nil, macs={}}
 	self.map[id:lower()] = node
 	return node
 end
@@ -34,7 +34,7 @@ function NodeMap:print ()
 end
 
 function NodeMap:toKML ()
-	kml_template = "<Placemark><name>%s</name><styleUrl>#router-%s</styleUrl><Point><coordinates>%s,0</coordinates></Point></Placemark>"
+	kml_template = "<Placemark><name>%s</name><styleUrl>#router-%s</styleUrl><Point><coordinates>%s,0</coordinates></Point><description>%s</description></Placemark>"
 	kml = {}
 
 	for id, attrs in pairs(self.map) do
@@ -45,9 +45,15 @@ function NodeMap:toKML ()
 			status = "down"
 		end
 
-		entry = kml_template:format(id, status, attrs.coords)
+		entry = kml_template:format(id, status, attrs.coords, describe_node(attrs))
 		table.insert(kml, entry)
 	end
 
 	return table.concat(kml, "\n")
+end
+
+function describe_node (node)
+	macs = {}
+	for k, v in pairs(node.macs) do table.insert(macs, k) end
+	return table.concat(macs, ", ")
 end
