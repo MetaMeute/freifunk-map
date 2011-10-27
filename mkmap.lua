@@ -99,10 +99,13 @@ while true do
 	table.insert(vis_data, t)
 end
 
-node_map = nodes:get()
 mac_map = {}
 
-for j,x in pairs(node_map) do mac_map[j] = x end
+for j, node in pairs(nodes:get()) do 
+	for m, y in pairs(node.macs) do
+		mac_map[m] = node
+	end
+end
 
 for i, foo in pairs(vis_data) do
 	if foo.gateway then
