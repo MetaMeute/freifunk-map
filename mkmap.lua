@@ -56,10 +56,10 @@ while true do
 					if node_mac then node.macs[node_mac] = true end
 				end
 				if #gps < #mac then
-					for i, mac in ipairs(mac) do
+					for i, m in ipairs(mac) do
 						if i > #gps then
-							node = nodes:addNodeWithId(mac, gps_format(gps[#gps]))
-							node.macs[mac] = true
+							node = nodes:getNode(mac[#gps])
+							node.macs[m] = true
 						end
 					end
 				end
