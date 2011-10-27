@@ -1,6 +1,7 @@
 #!/usr/bin/lua
 
 require "nodemap"
+require "Json"
 
 function string:split(sep)
         local sep, fields = sep or ":", {}
@@ -73,6 +74,78 @@ while true do
 	end
 end
 
+vis_data = {}
+
+local f = io.popen("batctl vd json")
+while true do
+	local line = f:read("*l")
+	if line == nil then break end
+
+	t = Json.Decode(line)
+	table.insert(vis_data, t)
+end
+
+node_map = nodes:get()
+mac_map = {}
+
+for j,x in pairs(node_map) do mac_map[j] = x end
+
+for i, foo in pairs(vis_data) do
+	if foo.gateway then
+		node = node_map[foo.gateway]
+		if node then
+			mac_map[foo.router:lower()] = node
+			mac_map[foo.gateway:lower()] = node
+		end
+	end
+end
+
+--[[
+for i, foo in pairs(vis_data) do
+	if foo.secondary then
+		x = mac_map[foo.secondary:lower()]
+		y = mac_map[foo.of:lower()]
+		if x or y then
+			node = x or y
+			if x and y then print("found both?!") end
+			mac_map[foo.of:lower()] = node
+			mac_map[foo.secondary:lower()] = node
+		end
+	end
+end
+]]--
+
+link_map = {}
+
+for i, foo in pairs(vis_data) do
+	if foo.neighbor then
+		x = foo.router:lower()
+		y = foo.neighbor:lower()
+		if mac_map[x] and mac_map[y] then
+			key = {x, y}
+			table.sort(key)
+			key = table.concat(key)
+
+			if link_map[key] == nil then
+				link_map[key] = {x=mac_map[x], y=mac_map[y]}
+			end
+		end
+	end
+end
+
+link_kml = {}
+link_template = [[<Placemark> 
+	<styleUrl>#wifi-link</styleUrl>
+	<LineString>
+		<coordinates>%s,0. %s,0.</coordinates>
+	</LineString>
+</Placemark>]]
+
+for id, link in pairs(link_map) do
+	table.insert(link_kml, link_template:format(link.x.coords, link.y.coords))
+end
+
+kml_links = table.concat(link_kml)
 
 for id, node in pairs(nodes:get()) do
 	if id:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") then
@@ -82,5 +155,37 @@ for id, node in pairs(nodes:get()) do
 	end
 end
 
-kml = nodes:toKML()
-print(kml)
+kml_nodes = nodes:toKML()
+
+kml_header = [[<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+	<Style id="wifi-link">
+		<LineStyle>
+			<color>#ff13d854</color>
+			<width>4</width>
+		</LineStyle> 
+	</Style>
+	<Style id="router-up">
+		<IconStyle>
+			<Icon>
+				<href>router-up.png</href>
+				<scale>1.0</scale>
+			</Icon>
+		</IconStyle>
+	</Style>
+	<Style id="router-down">
+		<IconStyle>
+			<Icon>
+				<href>router-down.png</href>
+				<scale>1.0</scale>
+			</Icon>
+		</IconStyle>
+	</Style>]]
+
+kml_footer = [[</Document></kml>]]
+
+print(kml_header)
+print(kml_links)
+print(kml_nodes)
+print(kml_footer)

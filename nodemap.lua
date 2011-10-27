@@ -37,30 +37,6 @@ function NodeMap:toKML ()
 	kml_template = "<Placemark><name>%s</name><styleUrl>#router-%s</styleUrl><Point><coordinates>%s,0</coordinates></Point></Placemark>"
 	kml = {}
 
-	kml_header = [[<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-<Document>
-	<Style id="router-up">
-		<IconStyle>
-			<Icon>
-				<href>router-up.png</href>
-				<scale>1.0</scale>
-			</Icon>
-		</IconStyle>
-	</Style>
-  <Style id="router-down">
-    <IconStyle>
-      <Icon>
-        <href>router-down.png</href>
-        <scale>1.0</scale>
-      </Icon>
-    </IconStyle>
-  </Style>]]
-
-	kml_footer = [[</Document></kml>]]
-
-	table.insert(kml, kml_header)
-
 	for id, attrs in pairs(self.map) do
 
 		if attrs.status == "up" then
@@ -72,8 +48,6 @@ function NodeMap:toKML ()
 		entry = kml_template:format(id, status, attrs.coords)
 		table.insert(kml, entry)
 	end
-
-	table.insert(kml, kml_footer)
 
 	return table.concat(kml, "\n")
 end
