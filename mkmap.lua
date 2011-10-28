@@ -175,9 +175,10 @@ end
 kml_links = table.concat(link_kml)
 
 for id, node in pairs(nodes:get()) do
-	if id:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") then
-		if macs[id] then
+	for mac, x in pairs(node.macs) do
+		if macs[mac] then
 			node.status = "up"
+			break
 		end 
 	end
 end
