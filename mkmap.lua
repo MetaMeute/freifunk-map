@@ -14,9 +14,12 @@ macs = {}
 
 nodes = NodeMap:new()
 
---nodes:addNodeWithId("8e:3d:c2:10:10:28", "10.69,53.8")
---nodes:addNodeWithId("e2:e5:9b:e6:69:29", "10.69,53.81")
---nodes:addNodeWithId("da:7b:6f:c1:63:c0", "10.702304,53.834384")
+node = nodes:addNodeWithId("intracity (virtual)", "10.69,53.85")
+node.macs["8e:3d:c2:10:10:28"] = true
+node.macs["e2:e5:9b:e6:69:29"] = true
+node.macs["da:7b:6f:c1:63:c0"] = true
+node.macs["56:47:05:ab:00:2c"] = true
+node.macs["04:11:6b:98:08:21"] = true
 
 local f = io.popen("wget -q --user-agent 'Do not change this!' -O- 'http://10.130.0.8/meutewiki/Freifunk/Knoten?action=raw'")
 
@@ -117,7 +120,6 @@ for i, foo in pairs(vis_data) do
 	end
 end
 
---[[
 for i, foo in pairs(vis_data) do
 	if foo.label == "TT" then
 		node = mac_map[foo.router:lower()]
@@ -140,7 +142,6 @@ for i, foo in pairs(vis_data) do
 		end
 	end
 end
-]]--
 
 link_map = {}
 
@@ -154,7 +155,7 @@ for i, foo in pairs(vis_data) do
 			key = table.concat(key)
 
 			if link_map[key] == nil then
-				link_map[key] = {x=mac_map[x], y=mac_map[y]}
+				link_map[key] = {x=mac_map[x], y=mac_map[y], label=foo.label}
 			end
 		end
 	end
@@ -166,10 +167,11 @@ link_template = [[<Placemark>
 	<LineString>
 		<coordinates>%s,0. %s,0.</coordinates>
 	</LineString>
+	<description>%s</description>
 </Placemark>]]
 
 for id, link in pairs(link_map) do
-	table.insert(link_kml, link_template:format(link.x.coords, link.y.coords))
+	table.insert(link_kml, link_template:format(link.x.coords, link.y.coords, link.label))
 end
 
 kml_links = table.concat(link_kml)
