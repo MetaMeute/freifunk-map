@@ -20,6 +20,7 @@ node.macs["e2:e5:9b:e6:69:29"] = true
 node.macs["da:7b:6f:c1:63:c0"] = true
 node.macs["56:47:05:ab:00:2c"] = true
 node.macs["04:11:6b:98:08:21"] = true
+node.status = "virtual"
 
 local f = io.popen("wget -q --user-agent 'Do not change this!' -O- 'http://10.130.0.8/meutewiki/Freifunk/Knoten?action=raw'")
 
@@ -155,7 +156,12 @@ for i, foo in pairs(vis_data) do
 			key = table.concat(key)
 
 			if link_map[key] == nil then
-				link_map[key] = {x=mac_map[x], y=mac_map[y], label=foo.label}
+				if mac_map[x].status == "virtual" or mac_map[y].status == "virtual" then
+					link_type = "virtual-link"
+				else
+					link_type = "wifi-link"
+				end
+				link_map[key] = {x=mac_map[x], y=mac_map[y], label=foo.label, type=link_type}
 			end
 		end
 	end
@@ -163,25 +169,28 @@ end
 
 link_kml = {}
 link_template = [[<Placemark> 
-	<styleUrl>#wifi-link</styleUrl>
 	<LineString>
 		<coordinates>%s,0. %s,0.</coordinates>
 	</LineString>
 	<description>%s</description>
+	<styleUrl>#%s</styleUrl>
+	<name>%s</name>
 </Placemark>]]
 
 for id, link in pairs(link_map) do
-	table.insert(link_kml, link_template:format(link.x.coords, link.y.coords, link.label))
+	table.insert(link_kml, link_template:format(link.x.coords, link.y.coords, link.label, link.type, link.type))
 end
 
 kml_links = table.concat(link_kml)
 
 for id, node in pairs(nodes:get()) do
-	for mac, x in pairs(node.macs) do
-		if macs[mac] then
-			node.status = "up"
-			break
-		end 
+	if node.status == nil then
+		for mac, x in pairs(node.macs) do
+			if macs[mac] then
+				node.status = "up"
+				break
+			end 
+		end
 	end
 end
 
@@ -190,6 +199,12 @@ kml_nodes = nodes:toKML()
 kml_header = [[<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
 <Document>
+	<Style id="virtual-link">
+		<LineStyle>
+			<color>#4f0013f8</color>
+			<width>2</width>
+		</LineStyle> 
+	</Style>
 	<Style id="wifi-link">
 		<LineStyle>
 			<color>#ff13d854</color>

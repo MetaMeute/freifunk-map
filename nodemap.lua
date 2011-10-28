@@ -10,7 +10,7 @@ function NodeMap:new ()
 end
 
 function NodeMap:addNodeWithId (id, coords)
-	node = {coords=coords, status=nil, macs={}}
+	node = {id=id, coords=coords, status=nil, macs={}}
 	self.map[id:lower()] = node
 	return node
 end
