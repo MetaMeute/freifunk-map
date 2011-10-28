@@ -14,7 +14,7 @@ macs = {}
 
 nodes = NodeMap:new()
 
-node = nodes:addNodeWithId("intracity (virtual)", "10.69,53.85")
+node = nodes:addNodeWithId("intracity (virtual)", "10.68792,53.85944")
 node.macs["8e:3d:c2:10:10:28"] = true
 node.macs["e2:e5:9b:e6:69:29"] = true
 node.macs["da:7b:6f:c1:63:c0"] = true
