@@ -86,6 +86,11 @@ local f = io.popen("batctl tg")
 while true do
 	local line = f:read("*l")
 	if line == nil then break end
+	mac = line:match("* %x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
+	if mac then 
+		macs[mac:sub(3):lower()] = true
+	end
+
 	mac = line:match("via %x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
 	if mac then 
 		macs[mac:sub(5):lower()] = true
