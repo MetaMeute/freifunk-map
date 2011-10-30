@@ -10,10 +10,9 @@ function string:split(sep)
         return fields
 end
 
-macs = {}
-
 nodes = NodeMap:new()
 
+--[[
 node = nodes:addNodeWithId("intracity (virtual)", "10.68792,53.85944")
 node.macs["8e:3d:c2:10:10:28"] = true
 node.macs["e2:e5:9b:e6:69:29"] = true
@@ -21,6 +20,7 @@ node.macs["da:7b:6f:c1:63:c0"] = true
 node.macs["56:47:05:ab:00:2c"] = true
 node.macs["04:11:6b:98:08:21"] = true
 node.status = "virtual"
+]]--
 
 local f = io.popen("wget -q --user-agent 'Do not change this!' -O- 'http://10.130.0.8/meutewiki/Freifunk/Knoten?action=raw'")
 
@@ -72,31 +72,6 @@ while true do
 	end
 end
 
-local f = io.popen("batctl tl")
-while true do
-	local line = f:read("*l")
-	if line == nil then break end
-	mac = line:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
-	if mac then 
-		macs[mac:lower()] = true
-	end
-end
-
-local f = io.popen("batctl tg")
-while true do
-	local line = f:read("*l")
-	if line == nil then break end
-	mac = line:match("* %x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
-	if mac then 
-		macs[mac:sub(3):lower()] = true
-	end
-
-	mac = line:match("via %x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
-	if mac then 
-		macs[mac:sub(5):lower()] = true
-	end
-end
-
 vis_data = {}
 
 local f = io.popen("batctl vd json")
@@ -116,36 +91,98 @@ for j, node in pairs(nodes:get()) do
 	end
 end
 
+-- add macs of routers to known gateways --
+--[[
 for i, foo in pairs(vis_data) do
 	if foo.gateway then
-		node = mac_map[foo.gateway]
+		node = mac_map[foo.gateway:lower()]
 		if node then
-			mac_map[foo.router:lower()] = node
-			node.macs[foo.router:lower()] = true
+			router = foo.router:lower()
+			mac_map[router] = node
+			node.macs[router] = true
 		end
 	end
 end
+]]--
 
+unknown_x = 10.65
+unknown_y = 53.827
+count = 0
+
+-- find secondary macs for known nodes --
 for i, foo in pairs(vis_data) do
-	if foo.label == "TT" then
-		node = mac_map[foo.router:lower()]
-		if node then
-			mac_map[foo.gateway:lower()] = node
-			node.macs[foo.gateway:lower()] = true
-		end 
-	end
-
 	if foo.secondary then
 		x = mac_map[foo.secondary:lower()]
 		y = mac_map[foo.of:lower()]
 		if x or y then
-			node = x or y
 			if x and y then print("found both?!") end
+
+			node = x or y
 			mac_map[foo.of:lower()] = node
 			mac_map[foo.secondary:lower()] = node
 			node.macs[foo.of:lower()] = true
 			node.macs[foo.secondary:lower()] = true
 		end
+	end
+end
+
+-- build list of nodes --
+local f = io.popen("batctl o")
+while true do
+	local line = f:read("*l")
+	if line == nil then break end
+	mac = line:match("^%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
+	if mac then 
+		mac = mac:lower()
+	else
+		if line:match("MainIF") then
+			mac = line:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
+			if mac then
+				mac = mac:lower()
+			end
+		end
+	end
+
+	if mac then
+		if mac_map[mac] then
+			 mac_map[mac].status = "up"
+		else 
+			x = unknown_x + count * 0.005
+			y = unknown_y + math.mod(count, 2) * 0.005
+			node = nodes:addNodeWithId(mac, x .. "," .. y)
+			node.macs[mac] = true
+			node.status = "up"
+			mac_map[mac] = node
+			count = count + 1
+		end 
+	end
+end
+
+-- find secondary macs for known nodes --
+for i, foo in pairs(vis_data) do
+	if foo.secondary then
+		x = mac_map[foo.secondary:lower()]
+		y = mac_map[foo.of:lower()]
+		if x or y then
+			if x and y then break end
+
+			node = x or y
+			mac_map[foo.of:lower()] = node
+			mac_map[foo.secondary:lower()] = node
+			node.macs[foo.of:lower()] = true
+			node.macs[foo.secondary:lower()] = true
+		end
+	end
+end
+
+-- find clients --
+-- should use batctl tg instead! --
+for i, foo in pairs(vis_data) do
+	if foo.label == "TT" then
+--		node = mac_map[foo.router:lower()]
+--		if node then
+--			node.clients[foo.gateway:lower()] = true
+--		end 
 	end
 end
 
@@ -187,17 +224,6 @@ for id, link in pairs(link_map) do
 end
 
 kml_links = table.concat(link_kml)
-
-for id, node in pairs(nodes:get()) do
-	if node.status == nil then
-		for mac, x in pairs(node.macs) do
-			if macs[mac] then
-				node.status = "up"
-				break
-			end 
-		end
-	end
-end
 
 kml_nodes = nodes:toKML()
 
