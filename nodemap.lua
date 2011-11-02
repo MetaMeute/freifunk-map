@@ -45,6 +45,10 @@ function NodeMap:toKML ()
 			status = "down"
 		end
 
+		if attrs.status == "unknown" then
+			status = "unknown"
+		end
+
 		entry = kml_template:format(id, status, attrs.coords, describe_node(attrs))
 		table.insert(kml, entry)
 	end

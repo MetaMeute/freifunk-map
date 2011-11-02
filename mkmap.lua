@@ -12,15 +12,12 @@ end
 
 nodes = NodeMap:new()
 
---[[
 node = nodes:addNodeWithId("intracity (virtual)", "10.68792,53.85944")
+node.macs["da:7b:6f:c1:63:d2"] = true
 node.macs["8e:3d:c2:10:10:28"] = true
-node.macs["e2:e5:9b:e6:69:29"] = true
-node.macs["da:7b:6f:c1:63:c0"] = true
-node.macs["56:47:05:ab:00:2c"] = true
-node.macs["04:11:6b:98:08:21"] = true
-node.status = "virtual"
-]]--
+node.macs["c2:66:29:88:3e:bb"] = true
+node.macs["56:47:05:ab:00:2b"] = true
+node.status = "unknown"
 
 local f = io.popen("wget -q --user-agent 'Do not change this!' -O- 'http://10.130.0.8/meutewiki/Freifunk/Knoten?action=raw'")
 
@@ -74,7 +71,7 @@ end
 
 vis_data = {}
 
-local f = io.popen("batctl vd json")
+local f = io.popen("batctl vd json -T")
 while true do
 	local line = f:read("*l")
 	if line == nil then break end
@@ -110,6 +107,7 @@ unknown_y = 53.827
 count = 0
 
 -- find secondary macs for known nodes --
+--[[
 for i, foo in pairs(vis_data) do
 	if foo.secondary then
 		x = mac_map[foo.secondary:lower()]
@@ -125,16 +123,17 @@ for i, foo in pairs(vis_data) do
 		end
 	end
 end
+]]--
 
 -- build list of nodes --
 local f = io.popen("batctl o")
 while true do
 	local line = f:read("*l")
 	if line == nil then break end
+
 	mac = line:match("^%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
-	if mac then 
-		mac = mac:lower()
-	else
+
+	if mac == nil then 
 		if line:match("MainIF") then
 			mac = line:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
 			if mac then
@@ -145,13 +144,15 @@ while true do
 
 	if mac then
 		if mac_map[mac] then
-			 mac_map[mac].status = "up"
+			if mac_map[mac].status == nil then
+				mac_map[mac].status = "up"
+			end
 		else 
 			x = unknown_x + count * 0.005
 			y = unknown_y + math.mod(count, 2) * 0.005
 			node = nodes:addNodeWithId(mac, x .. "," .. y)
 			node.macs[mac] = true
-			node.status = "up"
+			node.status = "unknown"
 			mac_map[mac] = node
 			count = count + 1
 		end 
@@ -161,16 +162,23 @@ end
 -- find secondary macs for known nodes --
 for i, foo in pairs(vis_data) do
 	if foo.secondary then
-		x = mac_map[foo.secondary:lower()]
-		y = mac_map[foo.of:lower()]
+		a = foo.secondary:lower()
+		b = foo.of:lower()
+		x = mac_map[a]
+		y = mac_map[b]
 		if x or y then
-			if x and y then break end
-
-			node = x or y
-			mac_map[foo.of:lower()] = node
-			mac_map[foo.secondary:lower()] = node
-			node.macs[foo.of:lower()] = true
-			node.macs[foo.secondary:lower()] = true
+			if x and y then
+				node = x
+				for m, y in pairs(y.macs) do
+					node.macs[m] = true
+				end
+			else	
+				node = x or y
+				mac_map[a] = node
+				mac_map[b] = node
+			end
+			node.macs[a] = true
+			node.macs[b] = true
 		end
 	end
 end
@@ -192,6 +200,7 @@ for i, foo in pairs(vis_data) do
 	if foo.neighbor then
 		x = foo.router:lower()
 		y = foo.neighbor:lower()
+
 		if mac_map[x] and mac_map[y] then
 			key = {x, y}
 			table.sort(key)
@@ -241,6 +250,14 @@ kml_header = [[<?xml version="1.0" encoding="UTF-8"?>
 			<color>#ff13d854</color>
 			<width>4</width>
 		</LineStyle> 
+	</Style>
+	<Style id="router-unknown">
+		<IconStyle>
+			<Icon>
+				<href>router-unknown.png</href>
+				<scale>1.0</scale>
+			</Icon>
+		</IconStyle>
 	</Style>
 	<Style id="router-up">
 		<IconStyle>
