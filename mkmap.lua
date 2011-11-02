@@ -27,6 +27,8 @@ function gps_format (x)
 	return x:gsub("^%s+", ""):gsub("%s+$", ""):gsub("(.*) (.*)", "%2,%1")
 end
 
+local table_end = false
+
 while true do
 	local line = f:read("*l")
 	if line == nil then break end
@@ -37,7 +39,7 @@ while true do
 				table_index[k] = i
 				i = i + 1
 			end
-		else
+		elseif table_end == false then
 			local row = line:lower():split("||")
 			local gps = row[table_index['gps']]
 			local mac = row[table_index['mac']]:gsub(" ", ""):split(",")
@@ -66,6 +68,8 @@ while true do
 				end
 			end
 		end
+	elseif next(table_index) then
+		table_end = true
 	end
 end
 
