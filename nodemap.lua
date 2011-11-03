@@ -1,9 +1,7 @@
-NodeMap = {map = {}}
-
--- aliases!
+NodeMap = {}
 
 function NodeMap:new ()
-	o = {}
+	o = {map = {}}
 	setmetatable(o, self)
 	self.__index = self
 	return o

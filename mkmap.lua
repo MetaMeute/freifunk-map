@@ -3,6 +3,12 @@
 require "nodemap"
 require "Json"
 
+prefix = arg[1]
+
+if prefix then prefix = prefix .. "/" else prefix = "" end
+
+local kml_file = prefix .. "mesh.kml"
+
 function string:split(sep)
         local sep, fields = sep or ":", {}
         local pattern = string.format("([^%s]+)", sep)
@@ -10,7 +16,16 @@ function string:split(sep)
         return fields
 end
 
+function write_file (filename, strings)
+	local fd = io.open(filename, "w+")
+	for i, s in ipairs(strings) do
+		fd:write(s)
+	end
+	fd:close()
+end
+
 nodes = NodeMap:new()
+unknown_nodes = NodeMap:new()
 
 node = nodes:addNodeWithId("intracity (virtual)", "10.68792,53.85944")
 node.macs["da:7b:6f:c1:63:d2"] = true
@@ -19,14 +34,13 @@ node.macs["c2:66:29:88:3e:bb"] = true
 node.macs["56:47:05:ab:00:2b"] = true
 node.status = "unknown"
 
-local f = io.popen("wget -q --user-agent 'Do not change this!' -O- 'http://10.130.0.8/meutewiki/Freifunk/Knoten?action=raw'")
-
-local table_index = {}
-
 function gps_format (x)
 	return x:gsub("^%s+", ""):gsub("%s+$", ""):gsub("(.*) (.*)", "%2,%1")
 end
 
+local f = io.popen("wget -q --user-agent 'Do not change this!' -O- 'http://10.130.0.8/meutewiki/Freifunk/Knoten?action=raw'")
+
+local table_index = {}
 local table_end = false
 
 while true do
@@ -106,10 +120,6 @@ for i, foo in pairs(vis_data) do
 end
 ]]--
 
-unknown_x = 10.65
-unknown_y = 53.827
-count = 0
-
 -- find secondary macs for known nodes --
 --[[
 for i, foo in pairs(vis_data) do
@@ -152,13 +162,9 @@ while true do
 				mac_map[mac].status = "up"
 			end
 		else 
-			x = unknown_x + count * 0.005
-			y = unknown_y + math.mod(count, 2) * 0.005
-			node = nodes:addNodeWithId(mac, x .. "," .. y)
+			local node = unknown_nodes:addNodeWithId(mac, nil)
 			node.macs[mac] = true
 			node.status = "unknown"
-			mac_map[mac] = node
-			count = count + 1
 		end 
 	end
 end
@@ -282,7 +288,5 @@ kml_header = [[<?xml version="1.0" encoding="UTF-8"?>
 
 kml_footer = [[</Document></kml>]]
 
-print(kml_header)
-print(kml_links)
-print(kml_nodes)
-print(kml_footer)
+write_file(kml_file, {kml_header, kml_links, kml_nodes, kml_footer})
+
