@@ -2,6 +2,8 @@
 
 require "nodemap"
 require "Json"
+require "map_html"
+require "util"
 
 prefix = arg[1]
 
@@ -16,18 +18,10 @@ function string:split(sep)
         return fields
 end
 
-function write_file (filename, strings)
-	local fd = io.open(filename, "w+")
-	for i, s in ipairs(strings) do
-		fd:write(s)
-	end
-	fd:close()
-end
-
 nodes = NodeMap:new()
 unknown_nodes = NodeMap:new()
 
-node = nodes:addNodeWithId("intracity (virtual)", "10.68792,53.85944")
+node = unknown_nodes:addNodeWithId("intracity (virtual)", "10.68792,53.85944")
 node.macs["da:7b:6f:c1:63:d2"] = true
 node.macs["8e:3d:c2:10:10:28"] = true
 node.macs["c2:66:29:88:3e:bb"] = true
@@ -290,3 +284,4 @@ kml_footer = [[</Document></kml>]]
 
 write_file(kml_file, {kml_header, kml_links, kml_nodes, kml_footer})
 
+make_map_html(prefix, unknown_nodes)
